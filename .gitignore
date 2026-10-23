@@ -1,0 +1,6 @@
+gifs/
+fonts/
+preview/
+__pycache__/
+*.bak
+*.log

@@ -1,0 +1,19 @@
+[Unit]
+Description=TRCC RAVE - visualiseur audio cyberpunk glitch (LCD Thermalright)
+After=default.target pipewire.service wireplumber.service
+Wants=pipewire.service
+Conflicts=trcc-nova-fullscroll.service
+ConditionPathExists=/usr/local/bin/trcc
+
+[Service]
+Type=simple
+ExecStart=/bin/bash @ROOT@/run.sh
+Restart=on-failure
+RestartSec=6
+TimeoutStopSec=10
+NoNewPrivileges=true
+Nice=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target
