@@ -54,7 +54,7 @@ Réglages en haut de `rave.py` : `ENTER_HEAT`, `ENTER_HOLD`, `LEAVE_HEAT`, `LEAV
 
 ## Installation
 ```bash
-git clone <ce dépôt> ~/.local/share/trcc-custom/rave-v7
+git clone https://github.com/PourrezJ/thermalright-lcd-rave.git ~/.local/share/trcc-custom/rave-v7
 cd ~/.local/share/trcc-custom/rave-v7
 ./install.sh      # polices, 81 GIFs d'anime (nekos.best, SFW), service systemd --user
 ./activate.sh     # démarre maintenant et à chaque ouverture de session
@@ -87,3 +87,6 @@ cd ~/.local/share/trcc-custom/rave-v7
   dans le dépôt : les droits restent à leurs auteurs et studios.
 - Polices Google Fonts (OFL), téléchargées à l'installation : Orbitron, Share Tech Mono,
   DotGothic16.
+
+## Licence
+Code sous licence MIT (voir `LICENSE`).
