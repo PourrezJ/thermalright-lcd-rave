@@ -4,3 +4,4 @@ preview/
 __pycache__/
 *.bak
 *.log
+demo/

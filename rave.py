@@ -1313,6 +1313,65 @@ def analyze(paths):
         print(f'{Path(path).stem[:26]:26s} chaleur/5s: {" ".join(line[:24])}')
         print(f'{"":26s} bascules: {", ".join(changes) or "aucune"}  (final {mm.mode})')
 
+def render_offline(audio_path, out_base, fmt='both', fps=FPS):
+    """Rendu hors ligne image par image, synchronisé à un fichier audio, vidéo HD + son."""
+    raw = subprocess.run(['ffmpeg', '-v', 'error', '-i', audio_path, '-ac', '1', '-ar', '48000',
+                          '-f', 'f32le', '-'], capture_output=True, check=True).stdout
+    x = np.frombuffer(raw, np.float32)
+    total = len(x) / 48000
+    LOG.info('rendu hors ligne de %s (%.1f s)', audio_path, total)
+    audio = Audio()
+    pool = ClipPool(size=10); pool.start()
+    calm = CalmView(); calm.t0 = 0.0
+    sensors = None
+    try:
+        from trcc.proxy import AppProxy
+        sensors = Sensors(AppProxy(timeout=7), calm); sensors.start()
+        time.sleep(2.0)
+    except Exception as e:
+        LOG.warning('capteurs indisponibles pour le rendu: %s', e)
+    t0 = time.monotonic()
+    while len(pool.ready) < 8 and time.monotonic() - t0 < 60:
+        time.sleep(0.2)
+    rave = Rave(audio, pool, sensors, calm)
+    outs = []
+    # 4:3 : agrandissement entier x6 (pixels nets, scanlines intactes)
+    if fmt in ('both', '4x3'):
+        outs.append((f'{out_base}-4x3.mp4', 'scale=1920:1440:flags=neighbor,fps=30'))
+    # vertical 9:16 (Reels/TikTok/Shorts) : écran x3 au centre sur fond flou
+    if fmt in ('both', 'vertical'):
+        outs.append((f'{out_base}-vertical.mp4',
+                     'split[a][b];[a]scale=2560:1920:flags=bilinear,crop=1080:1920,boxblur=24:3,'
+                     'eq=brightness=-0.18:saturation=1.3[bg];[b]scale=960:720:flags=neighbor,'
+                     'pad=976:736:8:8:color=0x101018[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2,fps=30'))
+    procs = []
+    for path, vf in outs:
+        cmd = ['ffmpeg', '-y', '-v', 'error', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', f'{W}x{H}',
+               '-r', str(fps), '-i', 'pipe:0', '-i', audio_path, '-filter_complex', f'[0:v]{vf}[v]',
+               '-map', '[v]', '-map', '1:a', '-c:v', 'libx264', '-preset', 'slow', '-crf', '15',
+               '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '320k', '-shortest',
+               '-movflags', '+faststart', path]
+        procs.append(subprocess.Popen(cmd, stdin=subprocess.PIPE))
+    hop = Audio.HOP
+    pos = 0
+    nframes = int(total * fps)
+    for k in range(nframes):
+        t = k / fps
+        while pos + hop <= len(x) and (pos + hop) / 48000 <= t:
+            audio.process(x[pos:pos + hop], now=(pos + hop) / 48000)
+            pos += hop
+        img = rave.render(t, 1 / fps)
+        buf = img.tobytes()
+        for pr in procs:
+            pr.stdin.write(buf)
+        if k % (fps * 10) == 0:
+            LOG.info('  %3.0f s / %.0f s  mode=%s chaleur=%.2f', t, total, rave.modes.mode, audio.heat)
+    for pr in procs:
+        pr.stdin.close(); pr.wait()
+    STOP.set()
+    for path, _ in outs:
+        LOG.info('vidéo : %s', path)
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--preview', type=float, default=0, help='rend N secondes en PNG/MP4 sans LCD')
@@ -1321,10 +1380,16 @@ def main():
     ap.add_argument('--audio-file', help='preview : audio depuis un fichier (temps réel)')
     ap.add_argument('--audio-start', type=float, default=0.0)
     ap.add_argument('--analyze', nargs='+', help='analyse hors-ligne de fichiers audio')
+    ap.add_argument('--render', metavar='AUDIO', help='rendu vidéo hors ligne synchronisé à ce morceau')
+    ap.add_argument('--out', default=str(HERE / 'demo' / 'demo'), help='préfixe des vidéos (--render)')
+    ap.add_argument('--format', choices=['both', '4x3', 'vertical'], default='both')
     a = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
     if a.analyze:
         analyze(a.analyze); return
+    if a.render:
+        Path(a.out).parent.mkdir(parents=True, exist_ok=True)
+        render_offline(a.render, a.out, a.format); return
     signal.signal(signal.SIGTERM, lambda *_: STOP.set())
     signal.signal(signal.SIGINT, lambda *_: STOP.set())
 

@@ -70,6 +70,18 @@ cd ~/.local/share/trcc-custom/rave-v7
   et `run-` marquent des clips de frappe, privilégiés pendant les drops.
 - `./restore-v6.sh` : revient au service Nova V6, s'il existe
 
+## Vidéo de démo pour les réseaux
+Le rendu se fait hors ligne, image par image, synchronisé à n'importe quel morceau, et sort
+des vidéos HD avec le son :
+```bash
+python3 rave.py --render morceau.mp3 --out demo/ma-demo          # 4:3 et 9:16
+python3 rave.py --render morceau.mp3 --out demo/ma-demo --format vertical
+```
+- `*-4x3.mp4` : 1920×1440, agrandissement x6 au pixel près (scanlines nettes).
+- `*-vertical.mp4` : 1080×1920 pour Reels, TikTok et Shorts, écran au centre sur fond flou.
+- Astuce : commence le morceau par 10 à 15 s calmes pour montrer le monitoring et
+  l'intro HACKED, et termine par quelques secondes de silence pour SIGNAL LOST.
+
 ## Technique
 - Chaque image 320×240 est entièrement composée en Python (numpy + Pillow).
 - Elle est tournée selon l'angle « fil » du profil SCSI FBL51 de TRCC, puis encodée en
