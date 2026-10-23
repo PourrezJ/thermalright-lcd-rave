@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=TRCC Rave Vidéo
+Name[en]=TRCC Rave Video
+Comment=Dépose un MP3 ici pour en faire une vidéo OVERLOAD synchronisée
+Exec=@ROOT@/make-video.sh --gui %F
+Icon=applications-multimedia
+Terminal=false
+MimeType=audio/mpeg;audio/x-wav;audio/wav;audio/flac;audio/ogg;audio/mp4;audio/x-m4a;audio/aac;audio/opus;
+Categories=AudioVideo;Video;
+StartupNotify=true

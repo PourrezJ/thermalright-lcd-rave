@@ -1313,13 +1313,16 @@ def analyze(paths):
         print(f'{Path(path).stem[:26]:26s} chaleur/5s: {" ".join(line[:24])}')
         print(f'{"":26s} bascules: {", ".join(changes) or "aucune"}  (final {mm.mode})')
 
-def render_offline(audio_path, out_base, fmt='both', fps=FPS):
+def render_offline(audio_path, out_base, fmt='both', fps=FPS, outro=False):
     """Rendu hors ligne image par image, synchronisé à un fichier audio, vidéo HD + son."""
     raw = subprocess.run(['ffmpeg', '-v', 'error', '-i', audio_path, '-ac', '1', '-ar', '48000',
                           '-f', 'f32le', '-'], capture_output=True, check=True).stdout
     x = np.frombuffer(raw, np.float32)
     total = len(x) / 48000
     LOG.info('rendu hors ligne de %s (%.1f s)', audio_path, total)
+    if outro:   # vidéo : fin nerveuse, SIGNAL LOST 2 s après la fin de la musique
+        global SILENCE_HOLD
+        SILENCE_HOLD = 2.0
     audio = Audio()
     pool = ClipPool(size=10); pool.start()
     calm = CalmView(); calm.t0 = 0.0
@@ -1364,10 +1367,13 @@ def render_offline(audio_path, out_base, fmt='both', fps=FPS):
         buf = img.tobytes()
         for pr in procs:
             pr.stdin.write(buf)
+        if k % fps == 0:
+            print(f'PROGRESS {100 * k // max(1, nframes)}', flush=True)
         if k % (fps * 10) == 0:
             LOG.info('  %3.0f s / %.0f s  mode=%s chaleur=%.2f', t, total, rave.modes.mode, audio.heat)
     for pr in procs:
         pr.stdin.close(); pr.wait()
+    print('PROGRESS 100', flush=True)
     STOP.set()
     for path, _ in outs:
         LOG.info('vidéo : %s', path)
@@ -1383,13 +1389,14 @@ def main():
     ap.add_argument('--render', metavar='AUDIO', help='rendu vidéo hors ligne synchronisé à ce morceau')
     ap.add_argument('--out', default=str(HERE / 'demo' / 'demo'), help='préfixe des vidéos (--render)')
     ap.add_argument('--format', choices=['both', '4x3', 'vertical'], default='both')
+    ap.add_argument('--outro', action='store_true', help='--render : SIGNAL LOST 2 s après la musique')
     a = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
     if a.analyze:
         analyze(a.analyze); return
     if a.render:
         Path(a.out).parent.mkdir(parents=True, exist_ok=True)
-        render_offline(a.render, a.out, a.format); return
+        render_offline(a.render, a.out, a.format, outro=a.outro); return
     signal.signal(signal.SIGTERM, lambda *_: STOP.set())
     signal.signal(signal.SIGINT, lambda *_: STOP.set())
 

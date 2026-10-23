@@ -26,8 +26,20 @@ python3 fetch_gifs.py
 echo '== Service systemd --user'
 mkdir -p ~/.config/systemd/user
 sed "s#@ROOT@#$root#g" systemd/trcc-rave.service.in > ~/.config/systemd/user/trcc-rave.service
-chmod +x run.sh activate.sh restore-v6.sh rave.py fetch_gifs.py
+chmod +x run.sh activate.sh restore-v6.sh rave.py fetch_gifs.py make-video.sh
 systemctl --user daemon-reload
+
+echo '== Lanceur « TRCC Rave Vidéo » (menu + bureau, dépose un MP3 dessus)'
+mkdir -p ~/.local/share/applications
+sed "s#@ROOT@#$root#g" desktop/trcc-rave-video.desktop.in > ~/.local/share/applications/trcc-rave-video.desktop
+desk="$(xdg-user-dir DESKTOP 2>/dev/null || echo "$HOME/Desktop")"
+if [ -d "$desk" ]; then
+  sed "s#@ROOT@#$root#g" desktop/trcc-rave-video.desktop.in > "$desk/TRCC Rave Vidéo.desktop"
+  chmod +x "$desk/TRCC Rave Vidéo.desktop"
+  gio set "$desk/TRCC Rave Vidéo.desktop" metadata::xfce-exe-checksum \
+    "$(sha256sum "$desk/TRCC Rave Vidéo.desktop" | cut -d' ' -f1)" 2>/dev/null || true
+  gio set "$desk/TRCC Rave Vidéo.desktop" metadata::trusted true 2>/dev/null || true
+fi
 echo
 echo "Installé. Pour lancer maintenant et à chaque session : ./activate.sh"
 echo "Test sans LCD : python3 rave.py --preview 12  (rendu dans preview/)"

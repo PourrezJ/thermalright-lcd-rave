@@ -70,17 +70,27 @@ cd ~/.local/share/trcc-custom/rave-v7
   et `run-` marquent des clips de frappe, privilégiés pendant les drops.
 - `./restore-v6.sh` : revient au service Nova V6, s'il existe
 
-## Vidéo de démo pour les réseaux
-Le rendu se fait hors ligne, image par image, synchronisé à n'importe quel morceau, et sort
-des vidéos HD avec le son :
+## Vidéo de démo pour les réseaux : ton MP3 devient une vidéo
+**Le plus simple** : glisse ton MP3 sur l'icône **TRCC Rave Vidéo** du bureau, ou
+double-clique dessus. Une fenêtre demande le format, l'extrait et la fin. La vidéo arrive
+dans `~/Vidéos/TRCC-Rave/`.
+
+**En ligne de commande :**
 ```bash
-python3 rave.py --render morceau.mp3 --out demo/ma-demo          # 4:3 et 9:16
-python3 rave.py --render morceau.mp3 --out demo/ma-demo --format vertical
+./make-video.sh morceau.mp3                 # vertical + 4:3, morceau entier
+./make-video.sh morceau.mp3 -f vertical     # vertical | 4x3 | both
+./make-video.sh morceau.mp3 -s 45 -d 30     # extrait de 30 s à partir de 0:45
+./make-video.sh morceau.mp3 --no-outro      # sans le « SIGNAL LOST » final
 ```
-- `*-4x3.mp4` : 1920×1440, agrandissement x6 au pixel près (scanlines nettes).
 - `*-vertical.mp4` : 1080×1920 pour Reels, TikTok et Shorts, écran au centre sur fond flou.
-- Astuce : commence le morceau par 10 à 15 s calmes pour montrer le monitoring et
-  l'intro HACKED, et termine par quelques secondes de silence pour SIGNAL LOST.
+- `*-4x3.mp4` : 1920×1440, agrandissement x6 au pixel près (scanlines nettes).
+- Chaque image est calculée sur le morceau, donc les glitchs tombent pile sur les kicks.
+  Rendu plus rapide que le temps réel (environ 25 s pour un extrait de 25 s en vertical).
+- Déroulé automatique :
+  1. environ 8 à 10 s de monitoring ;
+  2. l'intro HACKED quand ça devient énervé ;
+  3. l'OVERLOAD ;
+  4. à la fin, fondu, SIGNAL LOST et retour au monitoring (6 s ajoutées).
 
 ## Technique
 - Chaque image 320×240 est entièrement composée en Python (numpy + Pillow).
